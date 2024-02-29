@@ -1,38 +1,31 @@
 import math
-import os
 
-from collections import defaultdict
-from UnigramModel import tokenize
+from collections import Counter
+from utils import tokenize, evaluate_model
 
 
-def read_files(file_list):
+def get_freq(data):
     # key: tokens value: their frequency in all songs belonging to a genre
-    dic_term_frequency = defaultdict(int)
-    dic_pairs_frequency = defaultdict(int)
-    for file in file_list:
-        with open(file, 'r') as rfile:
-            tokens = []
-            for line in rfile:
-                tokens.extend(tokenize(line))
+    dic_term_frequency = Counter()
+    dic_pairs_frequency = Counter()
 
-            for token in tokens:
-                dic_term_frequency[token] += 1
+    for line in data:
+        tokens = tokenize(line)
+        # Update unigram frequencies
+        dic_term_frequency.update(tokens)
 
-            for curr_token, next_token in zip(tokens, tokens[1:]):
-                dic_pairs_frequency[(curr_token, next_token)] += 1
+        # Create bigrams with ('<START>', first_token) and (last_token, '<END>')
+        if len(tokens) >= 1:
+            bigrams = [('<START>', tokens[0])] + list(zip(tokens[:-1], tokens[1:])) + [(tokens[-1], '<END>')]
+            dic_pairs_frequency.update(bigrams)
 
     return dic_term_frequency, dic_pairs_frequency
 
 
 def freq_to_prob(dic_term_frequency, dic_pairs_frequency):
-    dic_term_prob = {}
-
     total_terms = sum(dic_term_frequency.values())
-    for pair in dic_pairs_frequency:
-        curr_term, _ = pair
-        dic_term_prob[pair] = (dic_pairs_frequency[pair] + 1) / (dic_term_frequency[curr_term] + total_terms)
-        dic_term_prob[pair] += 1
-
+    dic_term_prob = {pair: (f + 1) / (dic_term_frequency[pair[0]] + total_terms) + 1
+                     for pair, f in dic_pairs_frequency.items()}
     return dic_term_prob
 
 
@@ -40,10 +33,9 @@ class BigramModel:
     def __init__(self):
         self.model = {}
 
-    def fit(self, file_dic):
-        for genre in file_dic:
-            dic_term_frequency, dic_pair_frequency = read_files(file_dic[genre])
-            self.model[genre] = freq_to_prob(dic_term_frequency, dic_pair_frequency)
+    def train_for_genre(self, genre, data):
+        dic_term_frequency, dic_pair_frequency = get_freq(data)
+        self.model[genre] = freq_to_prob(dic_term_frequency, dic_pair_frequency)
 
     def calculate_probability(self, genre, input_text):
         prob = 0.0
@@ -53,32 +45,21 @@ class BigramModel:
 
         return prob
 
-    def predict(self, input_text):
-        probabilities = []
-        for genre in self.model:
-            prob = self.calculate_probability(genre, input_text)
-            probabilities.append((genre, prob))
+    def predict(self, input_text_array):
+        results = []
+        for input_text in input_text_array:
+            probabilities = []
+            for genre in self.model:
+                prob = self.calculate_probability(genre, input_text)
+                probabilities.append((genre, prob))
+            results.append(max(probabilities, key=lambda x: x[1])[0])
 
-        return max(probabilities, key=lambda x: x[1])
+        return results
 
 
 def main():
-    text = """You used to call me on my cell phone
-    Late night when you need my love
-    Call me on my cell phone"""
-
-    file_dic = {}
-    for genre in os.listdir("Lyrics"):
-        file_dic[genre] = []
-        for song in os.listdir(f"Lyrics/{genre}/"):
-            file_dic[genre].append(f"Lyrics/{genre}/{song}")
-
-    print("model")
     model = BigramModel()
-    model.fit(file_dic)
-    pred = model.predict(text)
-    print(pred)
-
+    evaluate_model(model)
     return
 
 
