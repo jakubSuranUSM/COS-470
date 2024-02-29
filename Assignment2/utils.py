@@ -16,6 +16,7 @@ stop_words = set(stopwords.words('english'))
 combined_text_file = "combined_text.txt"
 
 
+# tokenizes input text
 def tokenize(text):
     text = text.strip().lower()
     tokens = word_tokenize(text)
@@ -24,6 +25,7 @@ def tokenize(text):
     return tokens
 
 
+# combines all text files in a directory
 def combine_text_files(input_dir, output_file=combined_text_file):
     with open(os.path.join(input_dir, output_file), "w", encoding="utf-8") as outfile:
         for filename in os.listdir(input_dir):
@@ -34,27 +36,21 @@ def combine_text_files(input_dir, output_file=combined_text_file):
                 outfile.write(infile.read())
 
 
+# combines all text files for all genres
 def combine_all_text_files(path="Lyrics"):
     for genre in os.listdir(path):
         combine_text_files(f"{path}/{genre}")
 
 
+# extracts data from a file
 def get_data(file_name):
     with open(file_name, "r") as rfile:
         data = rfile.read().splitlines()
     return data
 
 
+# splits data for training and validation
 def split_data(data_file, train_ratio=0.9):
-    """Splits text data into training and validation sets.
-
-    Args:
-      data_file: The path to the file containing the combined text data.
-      train_ratio: The proportion of data to use for training (default: 0.9).
-
-    Returns:
-      A tuple containing the training data and validation data (both as strings).
-    """
     with open(data_file, "r", encoding="utf-8") as f:
         data = f.read()
 
@@ -69,6 +65,7 @@ def split_data(data_file, train_ratio=0.9):
     return training_data, validation_data
 
 
+# fixes the test set (described in the report)
 def add_space_between_capital_letters(input_file, output_file):
     with open(input_file, 'r') as f:
         text = f.read()
@@ -83,6 +80,7 @@ def add_space_between_capital_letters(input_file, output_file):
         f.write(modified_text)
 
 
+# displays true and predicted labels for a model
 def evaluate_model(model):
     # prepare data
     combine_all_text_files()

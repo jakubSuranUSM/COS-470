@@ -14,13 +14,16 @@ class MixedModel:
         self.bigram_model = BigramModel()
         self.model_lambda = model_lambda
 
+    # changes the model lambda
     def change_lambda(self, lambda_value):
         self.model_lambda = lambda_value
 
+    # trains the model for a specific genre
     def train_for_genre(self, genre, data):
         self.unigram_model.train_for_genre(genre, data)
         self.bigram_model.train_for_genre(genre, data)
 
+    # makes predictions for an array of inputs
     def predict(self, input_text):
         results = []
         for text in input_text:
@@ -36,6 +39,7 @@ class MixedModel:
         return results
 
 
+# creates validation data and labels by chunking the lines from each genre
 def prepare_labels(dic_val):
     lyrics = []
     labels = []
@@ -47,6 +51,7 @@ def prepare_labels(dic_val):
     return lyrics, labels
 
 
+# finds the best lambda for mixed model, uses accuracy as a performance measure
 def find_lambda(model, dic_val):
     top_lambda = None
     top_accuracy = 0
@@ -64,6 +69,7 @@ def find_lambda(model, dic_val):
     return top_lambda
 
 
+# finds the best lambda and tests the mixed model
 def main():
     model = MixedModel()
     dic_val = {}

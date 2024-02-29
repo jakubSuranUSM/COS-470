@@ -11,11 +11,11 @@ from BigramModel import BigramModel
 from MixedModel import MixedModel
 from utils import combine_all_text_files, get_data, combined_text_file, add_space_between_capital_letters
 
-# prepare data
+# prepare data, fix test set
 combine_all_text_files()
 add_space_between_capital_letters('test.tsv', 'test2.tsv')
 
-
+# read test data
 df = pd.read_csv('test2.tsv', sep='\t', header=0)
 songs = df['Text']
 labels = df['Genre']
@@ -39,7 +39,7 @@ model_predictions = {}
 label_encoder = LabelEncoder()
 true_labels = label_encoder.fit_transform(labels)
 
-
+# train models and make predictions
 for model_name, model in models.items():
     for genre in os.listdir("Lyrics"):
         data = get_data(f"Lyrics/{genre}/{combined_text_file}")
@@ -47,11 +47,13 @@ for model_name, model in models.items():
     predicted_labels = model.predict(songs)
     model_predictions[model_name] = label_encoder.transform(predicted_labels)
 
+# calculate performance metrics
 for model_name, predicted_labels in model_predictions.items():
     precision, recall, f1, _ = precision_recall_fscore_support(true_labels, predicted_labels,
                                                                average='macro', zero_division=0.0)
     print(f"{model_name}: precision: {precision:.4}, recall: {recall:.4}, f1: {f1:.4}")
 
+# calculate confusion matrices
 print("\nConfusion matrices:")
 for model_name, predicted_labels in model_predictions.items():
     conf_matrix = confusion_matrix(true_labels, predicted_labels)
