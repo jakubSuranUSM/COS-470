@@ -1,80 +1,60 @@
 import os
 import pandas as pd
-from feature_utils import (get_number_of_words, get_vocabulary_size, get_average_word_length, get_pos_distribution,
-                           get_stop_word_ratio, get_named_entities, get_rhyme_density, get_line_length_variation,
-                           get_sentiment_score)
+import torch
+from matplotlib import pyplot as plt
+from torch import optim
+from torch.utils.data import DataLoader
+from tqdm import tqdm
+
+from Dataset import SongFeaturesDataset
+from GenreClassifier import GenreClassifier
+from feature_extraction import get_songs, analyze_songs, show_correlation_heatmap
+
+df_filename = "df_features.csv"
+
+if not os.path.exists(df_filename):
+    song_lyrics = get_songs()
+    song_features_df = analyze_songs(song_lyrics)
+    song_features_df.to_csv(df_filename, index=False)
+
+df = pd.read_csv(df_filename)
+
+show_correlation_heatmap(df)
+
+dataset = SongFeaturesDataset(df, "Genre")
+model = GenreClassifier()
+
+batch_size = 4
+train_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+# num_of_batches = sum([1 for X, label in train_dataloader])
+# for X, label in train_dataloader:
+#     out = model(X)
+#     print(out)
+#     break
+
+num_epochs = 20
+learning_rate = 0.001
+optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+loss_func = torch.nn.CrossEntropyLoss()
+loss_epoch = {}
+loss_values = []
+
+for epoch in tqdm(range(num_epochs)):
+    for X, y in train_dataloader:
+        # zero the parameter gradients
+        optimizer.zero_grad()
+        # forward + backward + optimize
+        pred = model(X)
+        loss = loss_func(pred, y)
+        loss_values.append(loss.item())
+        loss.backward()
+        optimizer.step()
+    loss_epoch[epoch] = sum(loss_values) / len(loss_values)
 
 
-def get_songs(path="./Test Songs"):
-    songs = {}
-    for genre in os.listdir(path):
-        songs[genre] = []
-        for song in os.listdir(f"{path}/{genre}"):
-            rf = open(f"{path}/{genre}/{song}", 'r')
-            lyric = rf.read()
-            songs[genre].append(lyric)
-
-    return songs
-
-
-def analyze_songs(songs):
-    """
-    Takes a song lyrics dictionary and returns a DataFrame with extracted features for each song.
-    """
-    pos_tags = ["VERB", "NOUN", "PRON", "ADJ", "ADV", "ADP",
-                "CONJ", "DET", "NUM", "PRT", "X", "."]
-
-    genres = []
-    number_of_words = []
-    vocabulary_size = []
-    average_word_length = []
-    stop_word_ratio = []
-    # named_entities = []
-    rhyme_density = []
-    line_length_variation = []
-    sentiment_score = []
-    pos_distribution_dic = {tag: [] for tag in pos_tags}
-
-
-    for genre in songs.keys():
-        for song_lyrics in songs[genre]:
-            genres.append(genre)
-            number_of_words.append(get_number_of_words(song_lyrics))
-            vocabulary_size.append(get_vocabulary_size(song_lyrics))
-            average_word_length.append(get_average_word_length(song_lyrics))
-            stop_word_ratio.append(get_stop_word_ratio(song_lyrics))
-            # named_entities.append(get_named_entities(song_lyrics))
-            rhyme_density.append(get_rhyme_density(song_lyrics))
-            line_length_variation.append(get_line_length_variation(song_lyrics))
-            sentiment_score.append(get_sentiment_score(song_lyrics))
-            pos_distribution = get_pos_distribution(song_lyrics)
-            for key in pos_distribution_dic.keys():
-                pos_distribution_dic[key].append(pos_distribution.get(key, 0))
-
-
-
-
-    song_data = {
-        "Number of Words": number_of_words,
-        "Vocabulary Size": vocabulary_size,
-        "Average Word Length": average_word_length,
-        "Stop Word Ratio": stop_word_ratio,
-        # "Named Entities": named_entities,
-        "Rhyme density": rhyme_density,
-        "Line Length Variation": line_length_variation,
-        "Sentiment Score": sentiment_score,
-        "Genre": genres
-    }
-
-    for key, value in pos_distribution_dic.items():
-        song_data[key] = value
-
-    df = pd.DataFrame(song_data)
-
-    return df
-
-
-song_lyrics = get_songs()
-song_features_df = analyze_songs(song_lyrics)
-
-print(song_features_df)
+plt.plot(loss_epoch.keys(), loss_epoch.values(), 'r--')
+plt.legend(['Training Loss'])
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.show()

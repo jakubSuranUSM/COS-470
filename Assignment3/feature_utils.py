@@ -8,10 +8,16 @@ from nltk.corpus import stopwords
 import nltk.sentiment.vader as vader
 from collections import Counter
 
-nltk.download('universal_tagset')
-nltk.download('vader_lexicon')
 stop_words_set = set(stopwords.words('english'))
-nlp = spacy.load("en_core_web_sm")
+nlp = None  # Initialize spaCy model as None
+
+
+def download_resources():
+    """Downloads NLTK resources and loads spaCy model."""
+    nltk.download('universal_tagset')
+    nltk.download('vader_lexicon')
+    global nlp
+    nlp = spacy.load("en_core_web_sm")
 
 
 def extract_words(lyrics):
@@ -107,7 +113,7 @@ def get_rhyme_density(lyrics):
     """
     lyrics = lyrics.lower()
     lyrics = "".join(char for char in lyrics if char.isalnum() or char.isspace())
-    lines = lyrics.splitlines()
+    lines = [line for line in lyrics.split('\n') if line.strip()]
 
     total_rhyme_pairs = 0
     total_lines = len(lines)
