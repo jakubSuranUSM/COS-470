@@ -106,7 +106,6 @@ def get_named_entities(lyrics):
     return Counter(named_entities)
 
 
-# TODO: could use some upgrades
 def get_rhyme_density(lyrics):
     """
     Takes song lyrics as a string and returns the rhyme density, focusing on last words of lines.
@@ -145,7 +144,7 @@ def get_line_length_variation(lyrics):
     for line in lyrics:
         line_lengths.append(len(line.split()))
 
-    if len(line_lengths) == 0:
+    if len(line_lengths) <= 1:
         return 0
 
     return stdev(line_lengths)
@@ -162,3 +161,18 @@ def get_sentiment_score(lyrics):
     sentiment_analysis = sentiment_analyzer.polarity_scores(lyrics)
 
     return sentiment_analysis['compound']
+
+
+def get_average_line_length(lyrics):
+    """
+    Calculates the average line length of a song's lyrics.
+    """
+    lines = lyrics.strip().splitlines()
+
+    if not lines:
+        return 0
+
+    total_characters = sum(len(line) for line in lines)
+    number_of_lines = len(lines)
+
+    return total_characters / number_of_lines
